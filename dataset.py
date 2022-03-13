@@ -91,7 +91,7 @@ if __name__ == '__main__':
   # start wandb
   if args.wandb:
     import wandb
-    run = wandb.init(project=WANDB_PROJECT_DATASETS, entity="chveers", job_type='preprocess_data')
+    run = wandb.init(project=WANDB_PROJECT_DATASET, entity="chveers", job_type='preprocess_data')
 
   if args.withhold_n is not None:
     strategy = STRAT_WITHHOLD_LAST_N
