@@ -322,7 +322,7 @@ if args.wandb_model_checkpoint is not None:
   print("done")
   optimizer_state = checkpoint['optimizer_state_dict']
   scheduler_state = checkpoint['scheduler_state_dict']
-  config['starting_epoch'] = checkpoint['epochs']
+  config['starting_epoch'] = checkpoint['epoch']
   loss = checkpoint['loss']
 
 print("Config: {}".format(config))
