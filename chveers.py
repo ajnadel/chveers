@@ -268,7 +268,7 @@ def train(
         #         model.state_dict(),
         #         os.path.join(output_dir, f"{output_prefix}-{epoch}.pt"),
         #     )
-    return model, loss_over_time
+    return model, loss_over_time, optimizer, scheduler
 
 """### Training the model
 When it comes to training the model, we work in sets of 250 epochs. The chVeers_300 dataset has only 300 examples, and some of those are held out for the dev set. Thus our epochs run very quickly, especially with CUDA/a GPU.
@@ -286,11 +286,11 @@ epoch_offset = 0
 print("Config: {}".format(wandb.config))
 
 if args.variant == 'prefix-tune':
-  model, loss_over_time = train(
+  model, loss_over_time, optimizer, scheduler = train(
       finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False
   )
 elif args.variant == 'finetune':
-  model, loss_over_time = train(
+  model, loss_over_time, optimizer, scheduler = train(
       finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=True
   )
 else:
@@ -305,6 +305,12 @@ trained_model_artif = wandb.Artifact(
 )
 
 model.save_pretrained(model_dir)
+torch.save({
+            'epoch': total_epochs,
+            'scheduler_state_dict': scheduler.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            }, f"{model_dir}/torch_states.pt")
 
 if args.wandb:
   trained_model_artif.add_dir(model_dir)
