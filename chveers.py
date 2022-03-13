@@ -320,56 +320,53 @@ if args.wandb:
 # model.save_pretrained(MODEL_SAVE_DIR)
 # tokenizer.save_pretrained(MODEL_SAVE_DIR)
 
-def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
-                    skip_special_tokens=False, temperature=0.7):
-  try:
-    prefix_embs = tokenizer(prefix, return_tensors="pt")
-    # prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
-    n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
-    beam_output = model.generate(**prefix_embs, 
-                                max_length=n_tokens_in_prefix*2, 
-                                no_repeat_ngram_size=no_repeat_ngram_size, 
-                                num_beams=5,
-                                pad_token_id=tokenizer.eos_token_id,
-                                # top_p=0.92,
-                                temperature=temperature,
-                                early_stopping=False)
-    output_flat = beam_output.squeeze(dim=0)[:-1]
-    whole_enchilada = tokenizer.decode(output_flat, skip_special_tokens=skip_special_tokens)
-    suffix_only = tokenizer.decode(output_flat[n_tokens_in_prefix:], skip_special_tokens=skip_special_tokens)
-    return beam_output, whole_enchilada, suffix_only
-  except Exception as e:
-    print(f"Error on prefix '{prefix}':")
-    print(e)
-    return None, None, None
-  # return whole_enchilada, suffix_only
+# def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
+#                     skip_special_tokens=False, temperature=0.7):
+#   try:
+#     prefix_embs = tokenizer(prefix, return_tensors="pt")
+#     # prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
+#     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
+#     beam_output = model.generate(**prefix_embs, 
+#                                 max_length=n_tokens_in_prefix*2, 
+#                                 no_repeat_ngram_size=no_repeat_ngram_size, 
+#                                 num_beams=5,
+#                                 pad_token_id=tokenizer.eos_token_id,
+#                                 # top_p=0.92,
+#                                 temperature=temperature,
+#                                 early_stopping=False)
+#     output_flat = beam_output.squeeze(dim=0)[:-1]
+#     whole_enchilada = tokenizer.decode(output_flat, skip_special_tokens=skip_special_tokens)
+#     suffix_only = tokenizer.decode(output_flat[n_tokens_in_prefix:], skip_special_tokens=skip_special_tokens)
+#     return beam_output, whole_enchilada, suffix_only
+#   except Exception as e:
+#     print(f"Error on prefix '{prefix}':")
+#     print(e)
+#     return None, None, None
+#   # return whole_enchilada, suffix_only
 
-# generate_suffix(test)
-# print(len(dev_set))
-# example = dev_set.iloc[11]
-model.cpu()
-# beam_output, whole_enchilada, suffix_only = generate_suffix(example['Body_prefix'], model, tokenizer)
-# print(f"{example['Body']}\n")
-# print("{}{}".format(whole_enchilada[:-len(suffix_only)], termcolor.colored(suffix_only, 'red')))
+# # generate_suffix(test)
+# # print(len(dev_set))
+# # example = dev_set.iloc[11]
 
-# print(beam_output)
+# # beam_output, whole_enchilada, suffix_only = generate_suffix(example['Body_prefix'], model, tokenizer)
+# # print(f"{example['Body']}\n")
+# # print("{}{}".format(whole_enchilada[:-len(suffix_only)], termcolor.colored(suffix_only, 'red')))
 
-# print([whole_enchilada])
+# # print(beam_output)
 
-# reference = example["Body_suffix_gold"].split()
-# hypothesis = "i can get a glimpse of the marathi version....".split()
-# print(reference, hypothesis)
-# blue = bleu_score(reference, hypothesis)
-# print(f"({blue})\t\n{' '.join(reference)}\t\n{' '.join(hypothesis)}")
+# # print([whole_enchilada])
 
-dev_set_with_inference = dev_set.copy()
-dev_set_with_inference['Body_suffix_inferred'] = dev_set_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, tokenizer)[2])
-dev_set_with_inference
+# # reference = example["Body_suffix_gold"].split()
+# # hypothesis = "i can get a glimpse of the marathi version....".split()
+# # print(reference, hypothesis)
+# # blue = bleu_score(reference, hypothesis)
+# # print(f"({blue})\t\n{' '.join(reference)}\t\n{' '.join(hypothesis)}")
 
+# dev_set_with_inference = dev_set.copy()
+# dev_set_with_inference['Body_suffix_inferred'] = dev_set_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, tokenizer)[2])
 # dev_set_with_inference
 
-dev_set_with_inference.to_csv('./' + f"dev_set_inferred_ep{total_epochs}.csv")
+# # dev_set_with_inference
 
-
-# !nvidia-smi
+# dev_set_with_inference.to_csv('./' + f"dev_set_inferred_ep{total_epochs}.csv")
 
