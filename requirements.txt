@@ -1,0 +1,9 @@
+wandb
+pytorch
+tqdm
+nltk
+transformers
+termcolor
+pandas
+numpy
+argparse
