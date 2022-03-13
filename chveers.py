@@ -339,7 +339,7 @@ else:
   # idek
   pass
 
-total_epochs = starting_epoch + epochs_completed
+total_epochs = config['starting_epoch'] + epochs_completed
 
 trained_model_artif = wandb.Artifact(
     SELECTED_VARIANT + f'_ep{total_epochs}', type="model",
