@@ -304,30 +304,36 @@ When it comes to training the model, we work in sets of 250 epochs. The chVeers_
 We've chosen to run 750 epochs (the following cell, 3 time) for each version of our project.
 """
 
-
 print("Config: {}".format(wandb.config))
 
-starting_epoch = 0
 optimizer_state = None
 scheduler_state = None
 loss = 0
+
+config = {
+  'lr': wandb.config['lr'],
+  'batch_size': wandb.config['batch_size'],
+  'epochs': wandb.config['epochs'],
+  'starting_epoch': 0,
+}
+
 if args.wandb_model_checkpoint is not None:
   checkpoint = torch.load(f"{model_dir}/torch_states.pt")
   optimizer_state = checkpoint['optimizer_state_dict']
   scheduler_state = checkpoint['scheduler_state_dict']
-  starting_epoch = checkpoint['epochs']
+  config['starting_epoch'] = checkpoint['epochs']
   loss = checkpoint['loss']
 
 
 if args.variant == 'prefix-tune':
   model, loss_over_time, optimizer, scheduler, epochs_completed = train(
-      finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
-      starting_epoch=starting_epoch, initial_loss=loss
+      finetune_dataset, model, tokenizer, gpt2=gpt2, **config, enable_pack_tensor=False,
+      optimizer_state=optimizer_state, scheduler_state=scheduler_state, initial_loss=loss
   )
 elif args.variant == 'finetune':
   model, loss_over_time, optimizer, scheduler, epochs_completed = train(
-      finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=True, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
-      starting_epoch=starting_epoch, initial_loss=loss,
+      finetune_dataset, model, tokenizer, **config, enable_pack_tensor=True,
+      optimizer_state=optimizer_state, scheduler_state=scheduler_state, initial_loss=loss,
   )
 else:
   # idek
