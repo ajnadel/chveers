@@ -203,9 +203,12 @@ def train(
     enable_pack_tensor=False
 ):
     acc_steps = 100
-    device=torch.device("cuda")
-    model = model.cuda()
+    device = torch.device("cuda")
+    model = model.to(device)
     model.train()
+    if args.variant == 'prefix-tuning':
+      gpt2 = gpt2.to(device)
+      gpt2.train()
 
     optimizer = AdamW(model.parameters(), lr=lr)
     scheduler = get_linear_schedule_with_warmup(

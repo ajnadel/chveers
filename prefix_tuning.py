@@ -66,7 +66,7 @@ class PrefixTuning(GPT2PreTrainedModel):
         # this is the part that actually learns the embeddings
         temp_control = self.wte(input_tokens) # X = [1,2,3,4,5] --> [] 
         # do some stuff. feed forward to mid_dim, then apply non-linearity, then back to full
-        past_key_values = self.control_trans(temp_control) #bsz, seqlen, layer*emb
+        past_key_values = self.control_trans(temp_control).to(self.device) #bsz, seqlen, layer*emb
 
         # 6: Get the shape, resize it to prepare for attention!! A-TENNNN-SHUN!
         bsz, seqlen, _ = past_key_values.shape
@@ -81,8 +81,6 @@ class PrefixTuning(GPT2PreTrainedModel):
 
     def forward(self,
         input_ids=None,
-        weights=None,
-        emb_match=None,
         past_key_values=None,
         attention_mask=None,
         token_type_ids=None,
@@ -124,8 +122,7 @@ class PrefixTuning(GPT2PreTrainedModel):
         if self.mode_para == 2 and src_attn is not None and tgt_attn is not None:
             attention_mask = torch.cat([src_attn, tgt_attn], dim=1)
 
-        output = gpt2_model(input_ids=input_ids, #control_code=None,
-                            weights=weights, emb_match=emb_match,
+        output = gpt2_model(input_ids=input_ids,
                             past_key_values=past_key_values, attention_mask=attention_mask,
                             token_type_ids=token_type_ids, position_ids=position_ids,
                            head_mask=head_mask, inputs_embeds=inputs_embeds, encoder_hidden_states=encoder_hidden_states,
