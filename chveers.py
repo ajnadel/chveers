@@ -22,6 +22,8 @@ import pandas as pd
 import numpy as np
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, get_linear_schedule_with_warmup, AutoConfig
 
+from interrupt_handler import GracefulInterruptHandler
+
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
@@ -86,8 +88,20 @@ argp.add_argument('-o', '--offline',
 argp.add_argument('-e', '--epochs',
   dest='epochs',
   type=int,
-  required=True
-  # help="Use and upload to WandB."
+  required=True,
+  help="Number of epochs to train for"
+)
+argp.add_argument('--lr',
+  dest='lr',
+  type=float,
+  default=5e-5,
+  help="Learning rate."
+)
+argp.add_argument('--batch-size',
+  dest='batch_size',
+  type=int,
+  default=1,
+  help="Batch size."
 )
 
 # argp.add_argument('--inference-data',
@@ -97,14 +111,13 @@ argp.add_argument('-e', '--epochs',
 #  # help="Artifact identifier of the inference/validation dataset."
 # )
 
-# args = argp.parse_args()
 args = argp.parse_args()
 #endregion args
 
 # 4: Set up Weights and Biases integration
 print("Setting up wandb.")
 wandb.login()
-run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"))
+run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"), config=args)
 
 print("Loading dataset....")
 # 5: Load data file
@@ -240,54 +253,56 @@ def train(
     accumulating_batch_count = 0
     input_tensor = None
 
-    for epoch in range(starting_epoch, epochs + starting_epoch):
-        print(f"Training epoch {epoch}")
-        print(loss)
-        for idx, entry in tqdm(enumerate(train_dataloader)):
-            if enable_pack_tensor:
-              (input_tensor, carry_on, remainder) = pack_tensor(entry, input_tensor, max_seq_len)
+    epochs_completed = 0
 
-              if carry_on and idx != len(train_dataloader) - 1:
-                  continue
-            else:
-              input_tensor = entry
+    with GracefulInterruptHandler() as h:
+      for epoch in range(starting_epoch, epochs + starting_epoch):
+          if h.interrupted:
+            print("Ending training early!")
+            break
+          print(f"Training epoch {epoch}")
+          print(loss)
+          for idx, entry in tqdm(enumerate(train_dataloader)):
+              if enable_pack_tensor:
+                (input_tensor, carry_on, remainder) = pack_tensor(entry, input_tensor, max_seq_len)
 
-            input_tensor = input_tensor.to(device)
-            if args.variant == 'finetune':
-              outputs = model(input_tensor, labels=input_tensor)
-            elif args.variant == 'prefix-tune':
-              outputs = model(input_tensor, labels=input_tensor, gpt2_model=gpt2)
-            loss = outputs[0]
-            loss.backward()
+                if carry_on and idx != len(train_dataloader) - 1:
+                    continue
+              else:
+                input_tensor = entry
 
-            if (accumulating_batch_count % batch_size) == 0:
-                optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-                model.zero_grad()
+              input_tensor = input_tensor.to(device)
+              if args.variant == 'finetune':
+                outputs = model(input_tensor, labels=input_tensor)
+              elif args.variant == 'prefix-tune':
+                outputs = model(input_tensor, labels=input_tensor, gpt2_model=gpt2)
+              loss = outputs[0]
+              loss.backward()
 
-            accumulating_batch_count += 1
-            input_tensor = None
-          
-        wandb.log({"loss": loss})
-        loss_over_time.append(loss)
+              if (accumulating_batch_count % batch_size) == 0:
+                  optimizer.step()
+                  scheduler.step()
+                  optimizer.zero_grad()
+                  model.zero_grad()
+
+              accumulating_batch_count += 1
+              input_tensor = None
+            
+          wandb.log({"loss": loss})
+          loss_over_time.append(loss)
+          epochs_completed += 1
         # if save_model_on_epoch:
         #     torch.save(
         #         model.state_dict(),
         #         os.path.join(output_dir, f"{output_prefix}-{epoch}.pt"),
         #     )
-    return model, loss_over_time, optimizer, scheduler
+    return model, loss_over_time, optimizer, scheduler, epochs_completed
 
 """### Training the model
 When it comes to training the model, we work in sets of 250 epochs. The chVeers_300 dataset has only 300 examples, and some of those are held out for the dev set. Thus our epochs run very quickly, especially with CUDA/a GPU.
 
 We've chosen to run 750 epochs (the following cell, 3 time) for each version of our project.
 """
-
-wandb.config.lr = 5e-5
-wandb.config.epochs = args.epochs
-print(f"Requested {args.epochs} epochs")
-wandb.config.batch_size = 1
 
 
 print("Config: {}".format(wandb.config))
@@ -305,20 +320,20 @@ if args.wandb_model_checkpoint is not None:
 
 
 if args.variant == 'prefix-tune':
-  model, loss_over_time, optimizer, scheduler = train(
+  model, loss_over_time, optimizer, scheduler, epochs_completed = train(
       finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
       starting_epoch=starting_epoch, initial_loss=loss
   )
 elif args.variant == 'finetune':
-  model, loss_over_time, optimizer, scheduler = train(
+  model, loss_over_time, optimizer, scheduler, epochs_completed = train(
       finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=True, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
-      starting_epoch=starting_epoch, initial_loss=loss
+      starting_epoch=starting_epoch, initial_loss=loss,
   )
 else:
   # idek
   pass
 
-total_epochs = epoch_offset + wandb.config['epochs']
+total_epochs = starting_epoch + epochs_completed
 
 trained_model_artif = wandb.Artifact(
     SELECTED_VARIANT + f'_ep{total_epochs}', type="model",
