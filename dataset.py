@@ -43,7 +43,7 @@ class EmailBodyDataset(Dataset):
     self.tokenizer = GPT2Tokenizer.from_pretrained(gpt2_type)
     
     self.data = []
-    for email_body in df["Body"]:
+    for email_body in df.iloc[:, 0]::
       email_body = email_body.rstrip()
       self.data.append(
         torch.tensor(
