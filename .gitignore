@@ -1,0 +1,8 @@
+224N Data-Sheet1-300.csv
+PrefixTuning/
+artifacts/
+chVeers_300.csv
+chVeers_finetuned_gpt.ipynb
+chveers_finetuned_gpt.py
+trainer.py
+wandb/
