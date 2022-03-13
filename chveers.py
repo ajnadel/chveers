@@ -207,7 +207,11 @@ def train(
     gpt2_type="gpt2", output_dir=".", output_prefix="chveers_gpt",
     test_mode=False,save_model_on_epoch=False,
     loss_over_time=[],
-    enable_pack_tensor=False
+    enable_pack_tensor=False,
+    starting_epoch=0,
+    optimizer_state=None,
+    scheduler_state=None,
+    initial_loss=0
 ):
     acc_steps = 100
     device = torch.device("cuda")
@@ -220,19 +224,23 @@ def train(
       gpt2.train()
 
     optimizer = AdamW(model.parameters(), lr=lr)
+    if optimizer_state is not None:
+      optimizer.load_state_dict(optimizer_state)
+
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=warmup_steps, num_training_steps=-1
     )
+    if scheduler_state is not None:
+      scheduler.load_state_dict(scheduler_state)
 
     print("optimizing {} parameters...".format(sum(p.numel() for p in model.parameters())))
 
     train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    loss=0
+    loss = initial_loss
     accumulating_batch_count = 0
     input_tensor = None
 
-    for epoch in range(epochs):
-
+    for epoch in range(starting_epoch, epochs + starting_epoch):
         print(f"Training epoch {epoch}")
         print(loss)
         for idx, entry in tqdm(enumerate(train_dataloader)):
@@ -281,17 +289,30 @@ wandb.config.epochs = args.epochs
 print(f"Requested {args.epochs} epochs")
 wandb.config.batch_size = 1
 
-epoch_offset = 0
 
 print("Config: {}".format(wandb.config))
 
+starting_epoch = 0
+optimizer_state = None
+scheduler_state = None
+loss = 0
+if args.wandb_model_checkpoint is not None:
+  checkpoint = torch.load(f"{model_dir}/torch_states.pt")
+  optimizer_state = checkpoint['optimizer_state_dict']
+  scheduler_state = checkpoint['scheduler_state_dict']
+  starting_epoch = checkpoint['epochs']
+  loss = checkpoint['loss']
+
+
 if args.variant == 'prefix-tune':
   model, loss_over_time, optimizer, scheduler = train(
-      finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False
+      finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
+      starting_epoch=starting_epoch, initial_loss=loss
   )
 elif args.variant == 'finetune':
   model, loss_over_time, optimizer, scheduler = train(
-      finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=True
+      finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=True, optimizer_state=optimizer_state, scheduler_state=scheduler_state,
+      starting_epoch=starting_epoch, initial_loss=loss
   )
 else:
   # idek
