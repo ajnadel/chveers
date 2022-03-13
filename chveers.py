@@ -317,7 +317,9 @@ config = {
 }
 
 if args.wandb_model_checkpoint is not None:
+  print("Loading checkpoint training state...", end="")
   checkpoint = torch.load(f"{model_dir}/torch_states.pt")
+  print("done")
   optimizer_state = checkpoint['optimizer_state_dict']
   scheduler_state = checkpoint['scheduler_state_dict']
   config['starting_epoch'] = checkpoint['epochs']
@@ -355,6 +357,7 @@ torch.save({
             }, f"{model_dir}/torch_states.pt")
 
 if args.wandb:
+  print(f"Uploading this model checkpoint as '{trained_model_artif.name}'...")
   trained_model_artif.add_dir(model_dir)
   run.log_artifact(trained_model_artif)
 
