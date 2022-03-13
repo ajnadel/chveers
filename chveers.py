@@ -304,7 +304,6 @@ When it comes to training the model, we work in sets of 250 epochs. The chVeers_
 We've chosen to run 750 epochs (the following cell, 3 time) for each version of our project.
 """
 
-print("Config: {}".format(wandb.config))
 
 optimizer_state = None
 scheduler_state = None
@@ -324,6 +323,7 @@ if args.wandb_model_checkpoint is not None:
   config['starting_epoch'] = checkpoint['epochs']
   loss = checkpoint['loss']
 
+print("Config: {}".format(config))
 
 if args.variant == 'prefix-tune':
   model, loss_over_time, optimizer, scheduler, epochs_completed = train(
