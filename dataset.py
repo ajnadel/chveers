@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
 
   if args.wandb:
-    data_artifact = wandb.Artifact(args.dataset_name, type="proprocessed_data")
+    data_artifact = wandb.Artifact(args.dataset_name, type="preprocessed_data")
     data_artifact.add_file(train_out)
     data_artifact.add_file(dev_out)
     run.log_artifact(data_artifact)
