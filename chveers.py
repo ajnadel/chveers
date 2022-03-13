@@ -309,7 +309,7 @@ torch.save({
             'epoch': total_epochs,
             'scheduler_state_dict': scheduler.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
+            'loss': loss_over_time[-1],
             }, f"{model_dir}/torch_states.pt")
 
 if args.wandb:
