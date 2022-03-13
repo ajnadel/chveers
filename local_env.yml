@@ -1,0 +1,23 @@
+name: chveers_ewnv
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.8
+  - pytorch
+  - numpy
+  - scipy
+  - tqdm
+  - docopt
+  - nltk
+  - torchvision
+  - argparse
+  - transformers
+  - wandb
+  - pandas
+  - argparse
+  - pip
+  - pip:
+    - sentencepiece
+    - sacrebleu
+    - tensorboard
