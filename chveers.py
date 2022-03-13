@@ -98,7 +98,7 @@ argp.add_argument('-e', '--epochs',
 # )
 
 # args = argp.parse_args()
-args = argp.parse_args("train prefix-tune -d chVeers_300 -e 10".split())
+args = argp.parse_args()
 #endregion args
 
 # 4: Set up Weights and Biases integration
@@ -169,6 +169,12 @@ else:
   if args.variant == 'prefix-tune':
     gpt2 = model
     model = PrefixTuning(pt_config, model_gpt2=gpt2)
+
+
+if args.variant == 'prefix-tune':
+  for param in gpt2.base_model.parameters():
+    param.requires_grad = False
+
 print("Loaded model.")
 
 """Next, we will load our training set (processed above into our `EmailBodyDataset` dataset class."""
@@ -195,6 +201,7 @@ def pack_tensor(new_tensor, packed_tensor, max_seq_len):
 
 def train(
     dataset, model, tokenizer,
+    gpt2=None,
     batch_size=1, epochs=5, lr=2e-5,
     max_seq_len=768, warmup_steps=200,
     gpt2_type="gpt2", output_dir=".", output_prefix="chveers_gpt",
@@ -204,9 +211,11 @@ def train(
 ):
     acc_steps = 100
     device = torch.device("cuda")
+    print(f"Moving model to device {device}")
     model = model.to(device)
     model.train()
-    if args.variant == 'prefix-tuning':
+    if args.variant == 'prefix-tune':
+      print(f"Moving gpt2 to device {device}")
       gpt2 = gpt2.to(device)
       gpt2.train()
 
@@ -214,6 +223,8 @@ def train(
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=warmup_steps, num_training_steps=-1
     )
+
+    print("optimizing {} parameters...".format(sum(p.numel() for p in model.parameters())))
 
     train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     loss=0
@@ -265,16 +276,18 @@ When it comes to training the model, we work in sets of 250 epochs. The chVeers_
 We've chosen to run 750 epochs (the following cell, 3 time) for each version of our project.
 """
 
-wandb.config = {
-  "lr": 5e-5,
-  "epochs": args.epochs,
-  "batch_size": 1
-}
+wandb.config.lr = 5e-5
+wandb.config.epochs = args.epochs
+print(f"Requested {args.epochs} epochs")
+wandb.config.batch_size = 1
+
 epoch_offset = 0
+
+print("Config: {}".format(wandb.config))
 
 if args.variant == 'prefix-tune':
   model, loss_over_time = train(
-      finetune_dataset, model, tokenizer, **wandb.config, enable_pack_tensor=False
+      finetune_dataset, model, tokenizer, gpt2=gpt2, **wandb.config, enable_pack_tensor=False
   )
 elif args.variant == 'finetune':
   model, loss_over_time = train(
