@@ -78,10 +78,10 @@ argp.add_argument('--dataset-version',
   default='latest',
   help="Artifact identifier of the training dataset."
 )
-argp.add_argument('-u',
+argp.add_argument('-o', '--offline',
   dest='wandb',
-  action="store_true",
-  help="Use and upload to WandB."
+  action="store_false",
+  help="Do not report metrics or upload artifacts to WandB."
 )
 argp.add_argument('-e', '--epochs',
   dest='epochs',
@@ -104,7 +104,7 @@ args = argp.parse_args()
 # 4: Set up Weights and Biases integration
 print("Setting up wandb.")
 wandb.login()
-run = wandb.init(project="chveers-finetuned-gpt", entity="chveers")
+run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"))
 
 print("Loading dataset....")
 # 5: Load data file
