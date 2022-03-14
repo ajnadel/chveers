@@ -50,6 +50,11 @@ import wandb
 # 3: Arguments:
 #region args
 argp = argparse.ArgumentParser()
+
+subparsers = argp.add_subparsers(dest="function", required=True)
+argp_train = subparsers.add_parser('train')
+argp_infer = subparsers.add_parser('inference')
+
 argp.add_argument('-v', '--variant',
   dest='variant',
   help="Whether to use finetuning, prefix tuning, or baseline GPT",
@@ -68,9 +73,6 @@ argp.add_argument('-o', '--offline',
   action="store_false",
   help="Do not report metrics or upload artifacts to WandB."
 )
-subparsers = argp.add_subparsers(dest="function", required=True)
-argp_train = subparsers.add_parser('train')
-argp_infer = subparsers.add_parser('inference')
 
 argp_infer.add_argument('-i', '--in',
   dest="inference_infile",
