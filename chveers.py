@@ -205,7 +205,9 @@ print("Loaded model.")
 if args.function == 'inference':
   in_df = pd.read_csv(args.inference_infile)
   print(f"|Inference set| = {len(in_df)}")
-  generate_args = { 'gpt2_model': gpt2 }
+  generate_args = { }
+  if args.variant == 'prefix-tune':
+    generate_args['gpt2_model'] = gpt2
   if args.temperature is not None:
     generate_args['temperature'] = args.temperature
   out = inference(model, tokenizer, args.variant, in_df, generate_args)
