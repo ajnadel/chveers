@@ -22,6 +22,7 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
   try:
     prefix_embs = tokenizer(prefix, return_tensors="pt")
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
+    prefix_embs['attention_mask'] = prefix_embs['attention_mask'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
     ipdb.set_trace()
     beam_output = model.generate(**prefix_embs, 
