@@ -260,7 +260,10 @@ def train(
     if scheduler_state is not None:
       scheduler.load_state_dict(scheduler_state)
 
-    print("optimizing {} parameters...".format(sum(p.numel() for p in model.parameters())))
+    print("optimizing {}/{} parameters...".format(
+      sum(p.numel() for p in model.parameters() if p.requires_grad),
+      sum(p.numel() for p in model.parameters()),
+      ))
 
     train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     loss = initial_loss
