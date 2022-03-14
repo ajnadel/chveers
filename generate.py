@@ -4,6 +4,9 @@ from tqdm import tqdm, trange
 tqdm.pandas()
 
 def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str, df: pd.DataFrame, generate_args={}):
+    model = model.cuda()
+    tokenizer = tokenizer.cuda()
+
     if variant == 'prefix-tune':
         assert generate_args['gpt2_model'] is not None, "Missing gpt2 model for prefix-tuning variant"
 
@@ -18,7 +21,7 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
                     skip_special_tokens=False, temperature=0.7, generate_args={}):
   try:
     prefix_embs = tokenizer(prefix, return_tensors="pt")
-    # prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
+    prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
     beam_output = model.generate(**prefix_embs, 
                                 max_length=n_tokens_in_prefix*2, 
