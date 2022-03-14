@@ -8,6 +8,7 @@ def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str
 
     if variant == 'prefix-tune':
         assert generate_args['gpt2_model'] is not None, "Missing gpt2 model for prefix-tuning variant"
+        generate_args['gpt2_model'] = generate_args['gpt2_model'].cuda()
 
     assert 'Body_prefix' in df.columns, "missing key 'Body_prefix' in provided dataframe"
 
@@ -24,7 +25,7 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
     prefix_embs['attention_mask'] = prefix_embs['attention_mask'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
-    ipdb.set_trace()
+    # ipdb.set_trace()
     beam_output = model.generate(**prefix_embs, 
                                 max_length=n_tokens_in_prefix*2, 
                                 no_repeat_ngram_size=no_repeat_ngram_size, 
