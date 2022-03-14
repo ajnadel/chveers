@@ -131,10 +131,11 @@ args = argp.parse_args()
 #endregion args
 
 # 4: Set up Weights and Biases integration
-if args.function != 'inference':
-  print("Setting up wandb.")
-  wandb.login()
-  run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"), config=args, job_type=args.function)
+# if args.function != 'inference':
+print("Setting up wandb.")
+wandb.login()
+wandb_mode = ("online" if args.wandb else "offline") if args.function != 'inference' else 'online'
+run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=wandb_mode, config=args, job_type=args.function)
 
 if args.function == 'train':
   print("Loading dataset....")
@@ -146,7 +147,6 @@ if args.function == 'train':
 
   train_set = pd.read_csv(f'{datadir}/{args.dataset}_train.csv')
   dev_set = pd.read_csv(f'{datadir}/{args.dataset}_dev.csv')
-
 
   print(f"|Train set| = {len(train_set)}")
   print(f"|Dev set| = {len(dev_set)}")
@@ -211,10 +211,7 @@ if args.function == 'inference':
   if args.temperature is not None:
     generate_args['temperature'] = args.temperature
   out = inference(model, tokenizer, args.variant, in_df, generate_args)
-  print(f"Writing inference results to '{inference_outfile}")
   out.to_csv(args.inference_outfile)
-
-  quit()
 
 # assume that args.function == 'train':
   if args.variant == 'prefix-tune':
