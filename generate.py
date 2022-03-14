@@ -5,7 +5,6 @@ tqdm.pandas()
 
 def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str, df: pd.DataFrame, generate_args={}):
     model = model.cuda()
-    tokenizer = tokenizer.cuda()
 
     if variant == 'prefix-tune':
         assert generate_args['gpt2_model'] is not None, "Missing gpt2 model for prefix-tuning variant"
