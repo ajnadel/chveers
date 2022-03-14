@@ -13,13 +13,7 @@ class PrefixTuning(GPT2PreTrainedModel):
         super().__init__(config)
         print('under the PrefixTuning model')
 
-        # 1: Init some hyperparameters
-        self.match_n_layer = config.n_layer                 # Number of layers
-        self.match_n_head = config.n_head                   # Number of attention heads
-        self.match_n_embd = config.n_embd // config.n_head  # Embedding dimension PER HEAD
-        self.n_embd = config.n_embd                         # Total embedding dimension
-
-        # 2: Take in some other hyperparams
+        self.n_embd = config.n_embd # Total embedding dimension
 
         if hasattr(config, 'preseqlen'):
             self.preseqlen = config.preseqlen
