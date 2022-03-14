@@ -55,24 +55,20 @@ subparsers = argp.add_subparsers(dest="function", required=True)
 argp_train = subparsers.add_parser('train')
 argp_infer = subparsers.add_parser('inference')
 
-argp.add_argument('-v', '--variant',
-  dest='variant',
-  help="Whether to use finetuning, prefix tuning, or baseline GPT",
-  choices=["baseline", "finetune", "prefix-tune"])
 VARIANTS = {
   'baseline': 'chveers-baseline-gpt',
   'finetune': 'chveers-finetuned-gpt',
   'prefix-tune': 'chveers-prefix-tuned-gpt',
 }
-argp.add_argument('-m', '--model',
-  dest='wandb_model_checkpoint',
-  help="Which model to pull from WandB."
-)
-argp.add_argument('-o', '--offline',
-  dest='wandb',
-  action="store_false",
-  help="Do not report metrics or upload artifacts to WandB."
-)
+for a in [argp_train, argp_infer]:
+  a.add_argument('-v', '--variant',
+    dest='variant',
+    help="Whether to use finetuning, prefix tuning, or baseline GPT",
+    choices=["baseline", "finetune", "prefix-tune"])
+  a.add_argument('-m', '--model',
+    dest='wandb_model_checkpoint',
+    help="Which model to pull from WandB."
+  )
 
 argp_infer.add_argument('-i', '--in',
   dest="inference_infile",
@@ -90,6 +86,11 @@ argp_infer.add_argument('-t', '--temperature',
   default=None
 )
 
+argp_train.add_argument('-o', '--offline',
+  dest='wandb',
+  action="store_false",
+  help="Do not report metrics or upload artifacts to WandB."
+)
 argp_train.add_argument('-d', '--dataset',
   dest='dataset',
   help="Artifact identifier of the training dataset.",
