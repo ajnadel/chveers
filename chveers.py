@@ -12,12 +12,10 @@ Original file is located at
 # !pip install transformers
 # !pip install termcolor
 # !pip install wandb -qqq
-import termcolor
 import csv
 import io
 import random
 import math
-import urllib3
 import pandas as pd
 import numpy as np
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, get_linear_schedule_with_warmup, AutoConfig
@@ -34,11 +32,8 @@ import argparse
 import nltk
 from nltk.translate.bleu_score import sentence_bleu as bleu_score
 
-from tqdm import tqdm, trange
-tqdm.pandas()
-http = urllib3.PoolManager()
-
 from dataset import WANDB_PROJECT_DATASET, EmailBodyDataset
+from generate import inference
 # from PrefixTuning import Trainer_Prefix
 from prefix_tuning import PrefixTuning
 
@@ -55,10 +50,8 @@ import wandb
 # 3: Arguments:
 #region args
 argp = argparse.ArgumentParser()
-argp.add_argument('function',
-  help="Whether to train or evaluate the model",
-  choices=["train", "inference"])
-argp.add_argument('variant',
+argp.add_argument('-v', '--variant',
+  dest='variant',
   help="Whether to use finetuning, prefix tuning, or baseline GPT",
   choices=["baseline", "finetune", "prefix-tune"])
 VARIANTS = {
@@ -70,34 +63,54 @@ argp.add_argument('-m', '--model',
   dest='wandb_model_checkpoint',
   help="Which model to pull from WandB."
 )
-argp.add_argument('-d', '--dataset',
-  dest='dataset',
-  help="Artifact identifier of the training dataset.",
-  required=True
-)
-argp.add_argument('--dataset-version',
-  dest='dataset_version',
-  default='latest',
-  help="Artifact identifier of the training dataset."
-)
 argp.add_argument('-o', '--offline',
   dest='wandb',
   action="store_false",
   help="Do not report metrics or upload artifacts to WandB."
 )
-argp.add_argument('-e', '--epochs',
+subparsers = argp.add_subparsers(dest="function", required=True)
+argp_train = subparsers.add_parser('train')
+argp_infer = subparsers.add_parser('inference')
+
+argp_infer.add_argument('-i', '--in',
+  dest="inference_infile",
+  help="Input CSV of examples to run inference on",
+  required=True
+)
+argp_infer.add_argument('-o', '--out',
+  dest="inference_outfile",
+  help="Output for CSV with inference",
+)
+argp_infer.add_argument('-t', '--temperature',
+  dest="temperature",
+  help="Input CSV of examples to run inference on",
+  type=float,
+  default=None
+)
+
+argp_train.add_argument('-d', '--dataset',
+  dest='dataset',
+  help="Artifact identifier of the training dataset.",
+  required=True
+)
+argp_train.add_argument('--dataset-version',
+  dest='dataset_version',
+  default='latest',
+  help="Artifact identifier of the training dataset."
+)
+argp_train.add_argument('-e', '--epochs',
   dest='epochs',
   type=int,
   required=True,
   help="Number of epochs to train for"
 )
-argp.add_argument('--lr',
+argp_train.add_argument('--lr',
   dest='lr',
   type=float,
   default=5e-5,
   help="Learning rate."
 )
-argp.add_argument('--batch-size',
+argp_train.add_argument('--batch-size',
   dest='batch_size',
   type=int,
   default=1,
@@ -115,23 +128,25 @@ args = argp.parse_args()
 #endregion args
 
 # 4: Set up Weights and Biases integration
-print("Setting up wandb.")
-wandb.login()
-run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"), config=args)
+if args.function != 'inference':
+  print("Setting up wandb.")
+  wandb.login()
+  run = wandb.init(project="chveers-finetuned-gpt", entity="chveers", mode=("online" if args.wandb else "offline"), config=args, job_type=args.function)
 
-print("Loading dataset....")
-# 5: Load data file
-print(f'Using dataset: {WANDB_PROJECT_DATASET}/{args.dataset}:{args.dataset_version}')
-dataset_artif = run.use_artifact(f'{WANDB_PROJECT_DATASET}/{args.dataset}:{args.dataset_version}')
-datadir = dataset_artif.download(root=None)
-print(datadir)
+if args.function == 'train':
+  print("Loading dataset....")
+  # 5: Load data file
+  print(f'Using dataset: {WANDB_PROJECT_DATASET}/{args.dataset}:{args.dataset_version}')
+  dataset_artif = run.use_artifact(f'{WANDB_PROJECT_DATASET}/{args.dataset}:{args.dataset_version}')
+  datadir = dataset_artif.download(root=None)
+  print(datadir)
 
-train_set = pd.read_csv(f'{datadir}/{args.dataset}_train.csv')
-dev_set = pd.read_csv(f'{datadir}/{args.dataset}_dev.csv')
+  train_set = pd.read_csv(f'{datadir}/{args.dataset}_train.csv')
+  dev_set = pd.read_csv(f'{datadir}/{args.dataset}_dev.csv')
 
 
-print(f"|Train set| = {len(train_set)}")
-print(f"|Dev set| = {len(dev_set)}")
+  print(f"|Train set| = {len(train_set)}")
+  print(f"|Dev set| = {len(dev_set)}")
 
 """#### Initialize the GPT-2 Model from Checkpoint"""
 
@@ -163,8 +178,14 @@ pt_config.vocab_size = len(tokenizer)
 #             # prefix_dropout = model_args.prefix_dropout,
 #             # '': 
             
-
-if args.wandb_model_checkpoint != None:
+if args.variant == 'baseline' or args.wandb_model_checkpoint is None: # if loading default checkpoint
+  print("Loading from HuggingFace checkpoint")
+  model_dir = f'./{SELECTED_VARIANT}'
+  model = GPT2LMHeadModel.from_pretrained('gpt2')
+  if args.variant == 'prefix-tune':
+    gpt2 = model
+    model = PrefixTuning(pt_config, model_gpt2=gpt2)
+else:
   print("Loading from WAndB")
   model_at = run.use_artifact(args.wandb_model_checkpoint)
   model_dir = model_at.download()
@@ -175,20 +196,22 @@ if args.wandb_model_checkpoint != None:
                     )
   elif args.variant == 'finetune':
     model = GPT2LMHeadModel.from_pretrained(model_dir)
-else:
-  print("Loading from HuggingFace checkpoint")
-  model_dir = f'./{SELECTED_VARIANT}'
-  model = GPT2LMHeadModel.from_pretrained('gpt2')
-  if args.variant == 'prefix-tune':
-    gpt2 = model
-    model = PrefixTuning(pt_config, model_gpt2=gpt2)
-
-
-if args.variant == 'prefix-tune':
-  for param in gpt2.base_model.parameters():
-    param.requires_grad = False
 
 print("Loaded model.")
+
+if args.function == 'inference':
+  in_df = pd.read_csv(args.inference_infile)
+  print(f"|Inference set| = {len(in_df)}")
+  generate_args = { 'gpt2_model': gpt2 }
+  if args.temperature is not None:
+    generate_args['temperature'] = args.temperature
+  out = inference(model, tokenizer, args.variant, in_df, generate_args)
+  out.to_csv(args.inference_outfile)
+
+# assume that args.function == 'train':
+  if args.variant == 'prefix-tune':
+    for param in gpt2.base_model.parameters():
+      param.requires_grad = False
 
 """Next, we will load our training set (processed above into our `EmailBodyDataset` dataset class."""
 
@@ -360,58 +383,3 @@ if args.wandb:
   print(f"Uploading this model checkpoint as '{trained_model_artif.name}'...")
   trained_model_artif.add_dir(model_dir)
   run.log_artifact(trained_model_artif)
-
-# # torch.save(model, './model_750')
-# model.save_pretrained(MODEL_SAVE_DIR)
-# tokenizer.save_pretrained(MODEL_SAVE_DIR)
-
-# def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
-#                     skip_special_tokens=False, temperature=0.7):
-#   try:
-#     prefix_embs = tokenizer(prefix, return_tensors="pt")
-#     # prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
-#     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
-#     beam_output = model.generate(**prefix_embs, 
-#                                 max_length=n_tokens_in_prefix*2, 
-#                                 no_repeat_ngram_size=no_repeat_ngram_size, 
-#                                 num_beams=5,
-#                                 pad_token_id=tokenizer.eos_token_id,
-#                                 # top_p=0.92,
-#                                 temperature=temperature,
-#                                 early_stopping=False)
-#     output_flat = beam_output.squeeze(dim=0)[:-1]
-#     whole_enchilada = tokenizer.decode(output_flat, skip_special_tokens=skip_special_tokens)
-#     suffix_only = tokenizer.decode(output_flat[n_tokens_in_prefix:], skip_special_tokens=skip_special_tokens)
-#     return beam_output, whole_enchilada, suffix_only
-#   except Exception as e:
-#     print(f"Error on prefix '{prefix}':")
-#     print(e)
-#     return None, None, None
-#   # return whole_enchilada, suffix_only
-
-# # generate_suffix(test)
-# # print(len(dev_set))
-# # example = dev_set.iloc[11]
-
-# # beam_output, whole_enchilada, suffix_only = generate_suffix(example['Body_prefix'], model, tokenizer)
-# # print(f"{example['Body']}\n")
-# # print("{}{}".format(whole_enchilada[:-len(suffix_only)], termcolor.colored(suffix_only, 'red')))
-
-# # print(beam_output)
-
-# # print([whole_enchilada])
-
-# # reference = example["Body_suffix_gold"].split()
-# # hypothesis = "i can get a glimpse of the marathi version....".split()
-# # print(reference, hypothesis)
-# # blue = bleu_score(reference, hypothesis)
-# # print(f"({blue})\t\n{' '.join(reference)}\t\n{' '.join(hypothesis)}")
-
-# dev_set_with_inference = dev_set.copy()
-# dev_set_with_inference['Body_suffix_inferred'] = dev_set_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, tokenizer)[2])
-# dev_set_with_inference
-
-# # dev_set_with_inference
-
-# dev_set_with_inference.to_csv('./' + f"dev_set_inferred_ep{total_epochs}.csv")
-
