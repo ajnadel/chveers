@@ -16,13 +16,14 @@ def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str
 
     return df_with_inference
 
+import ipdb
 def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
                     skip_special_tokens=False, temperature=0.7, generate_args={}):
   try:
     prefix_embs = tokenizer(prefix, return_tensors="pt")
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
-    print("Model is on device {}".format(model.device))
+    ipdb.set_trace()
     beam_output = model.generate(**prefix_embs, 
                                 max_length=n_tokens_in_prefix*2, 
                                 no_repeat_ngram_size=no_repeat_ngram_size, 
