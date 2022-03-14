@@ -23,7 +23,7 @@ from torch.optim import AdamW
 import torch.nn.functional as F
 
 import argparse
-import tqdm
+from tqdm import tqdm
 
 from dataset import WANDB_PROJECT_DATASET, EmailBodyDataset
 from prefix_tuning import PrefixTuning
