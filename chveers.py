@@ -12,12 +12,7 @@ Original file is located at
 # !pip install transformers
 # !pip install termcolor
 # !pip install wandb -qqq
-import csv
-import io
-import random
-import math
 import pandas as pd
-import numpy as np
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, get_linear_schedule_with_warmup, AutoConfig
 
 from interrupt_handler import GracefulInterruptHandler
@@ -28,20 +23,11 @@ from torch.optim import AdamW
 import torch.nn.functional as F
 
 import argparse
-
-import nltk
-from nltk.translate.bleu_score import sentence_bleu as bleu_score
+import tqdm
 
 from dataset import WANDB_PROJECT_DATASET, EmailBodyDataset
 from generate import inference
-# from PrefixTuning import Trainer_Prefix
 from prefix_tuning import PrefixTuning
-
-try:
-  import google.colab
-  IN_COLAB = True
-except:
-  IN_COLAB = False
 
 import wandb
 
