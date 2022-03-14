@@ -23,6 +23,7 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
     prefix_embs = tokenizer(prefix, return_tensors="pt")
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
+    print("Model is on device {}".format(model.device))
     beam_output = model.generate(**prefix_embs, 
                                 max_length=n_tokens_in_prefix*2, 
                                 no_repeat_ngram_size=no_repeat_ngram_size, 
