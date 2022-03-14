@@ -3,7 +3,7 @@ from transformers import GPT2PreTrainedModel, GPT2Tokenizer
 from tqdm import tqdm, trange
 tqdm.pandas()
 
-def inference(model: GPT2PreTrainedModel, tokenzier: GPT2Tokenizer, variant: "prefix-tune" | "finetune" | "baseline", df: pd.DataFrame, generate_args={}):
+def inference(model: GPT2PreTrainedModel, tokenzier: GPT2Tokenizer, variant: str, df: pd.DataFrame, generate_args={}):
     if variant == 'prefix-tune':
         assert generate_args['gpt2_model'] is not None, "Missing gpt2 model for prefix-tuning variant"
 
