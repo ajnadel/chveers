@@ -83,6 +83,12 @@ argp.add_argument('--batch-size',
   default=1,
   help="Batch size."
 )
+argp.add_argument('--warmup-steps',
+  dest='warmup_steps',
+  type=int,
+  default=200,
+  help="Warmup steps."
+)
 
 # argp.add_argument('--inference-data',
 #   help="Artifact identifier of the inference/validation dataset."
@@ -296,6 +302,7 @@ config = {
   'lr': wandb.config['lr'],
   'batch_size': wandb.config['batch_size'],
   'epochs': wandb.config['epochs'],
+  'warmup_steps': wandb.config['warmup_steps'],
   'starting_epoch': 0,
 }
 
