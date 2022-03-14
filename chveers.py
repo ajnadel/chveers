@@ -319,7 +319,7 @@ print("Config: {}".format(config))
 
 if args.variant == 'prefix-tune':
   model, loss_over_time, optimizer, scheduler, epochs_completed = train(
-      finetune_dataset, model, tokenizer, gpt2=gpt2, **config, enable_pack_tensor=False,
+      finetune_dataset, model, tokenizer, gpt2=gpt2, **config, enable_pack_tensor=True, max_seq_len=768-10,
       optimizer_state=optimizer_state, scheduler_state=scheduler_state, initial_loss=loss
   )
 elif args.variant == 'finetune':
