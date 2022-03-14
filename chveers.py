@@ -199,6 +199,8 @@ if args.function == 'inference':
   out = inference(model, tokenizer, args.variant, in_df, generate_args)
   out.to_csv(args.inference_outfile)
 
+  quit()
+
 # assume that args.function == 'train':
   if args.variant == 'prefix-tune':
     for param in gpt2.base_model.parameters():
