@@ -211,7 +211,10 @@ if args.function == 'inference':
   if args.temperature is not None:
     generate_args['temperature'] = args.temperature
   out = inference(model, tokenizer, args.variant, in_df, generate_args)
+  print(f"Writing inference results to '{inference_outfile}")
   out.to_csv(args.inference_outfile)
+
+  quit()
 
 # assume that args.function == 'train':
   if args.variant == 'prefix-tune':

@@ -17,7 +17,6 @@ def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str
 
     return df_with_inference
 
-import ipdb
 def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
                     skip_special_tokens=False, temperature=0.7, generate_args={}):
   try:
@@ -25,7 +24,7 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
     prefix_embs['attention_mask'] = prefix_embs['attention_mask'].cuda()
     n_tokens_in_prefix = prefix_embs['input_ids'].shape[1]
-    # ipdb.set_trace()
+
     beam_output = model.generate(**prefix_embs, 
                                 max_length=n_tokens_in_prefix*2, 
                                 no_repeat_ngram_size=no_repeat_ngram_size, 
@@ -42,29 +41,3 @@ def generate_suffix(prefix, model, tokenizer, no_repeat_ngram_size=4,
     print(f"Error on prefix '{prefix}':")
     print(e)
     return None, None, None
-  # return whole_enchilada, suffix_only
-
-# generate_suffix(test)
-# print(len(dev_set))
-# example = dev_set.iloc[11]
-
-# beam_output, whole_enchilada, suffix_only = generate_suffix(example['Body_prefix'], model, tokenizer)
-# print(f"{example['Body']}\n")
-# print("{}{}".format(whole_enchilada[:-len(suffix_only)], termcolor.colored(suffix_only, 'red')))
-
-# print(beam_output)
-
-# print([whole_enchilada])
-
-# reference = example["Body_suffix_gold"].split()
-# hypothesis = "i can get a glimpse of the marathi version....".split()
-# print(reference, hypothesis)
-# blue = bleu_score(reference, hypothesis)
-# print(f"({blue})\t\n{' '.join(reference)}\t\n{' '.join(hypothesis)}")
-
-# dev_set_with_inference = dev_set.copy()
-# dev_set_with_inference['Body_suffix_inferred'] = dev_set_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, tokenizer)[2])
-# dev_set_with_inference
-
-# dev_set_with_inference
-
