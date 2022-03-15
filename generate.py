@@ -17,7 +17,7 @@ def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str
 
     return df_with_inference
 
-def generate_suffix(prefix, model, variant, tokenizer, no_repeat_ngram_size=4,
+def generate_suffix(prefix, model, variant, tokenizer, other_kwargs,
                     skip_special_tokens=False, gpt2=None):
   try:
     prefix_embs = tokenizer(prefix, return_tensors="pt")
@@ -30,7 +30,7 @@ def generate_suffix(prefix, model, variant, tokenizer, no_repeat_ngram_size=4,
         beam_output = gpt2.generate(**prefix_embs, 
                                     past_key_values=past_key_values,
                                     max_length=n_tokens_in_prefix*2, 
-                                    no_repeat_ngram_size=no_repeat_ngram_size, 
+                                    no_repeat_ngram_size=4, 
                                     num_beams=5,
                                     pad_token_id=tokenizer.eos_token_id,
                                     # top_p=0.92,
