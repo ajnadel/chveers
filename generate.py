@@ -39,12 +39,12 @@ def generate_suffix(prefix, model, variant, tokenizer, other_kwargs,
     else:
         beam_output = model.generate(**prefix_embs, 
                                     max_length=n_tokens_in_prefix*2, 
-                                    no_repeat_ngram_size=no_repeat_ngram_size, 
+                                    no_repeat_ngram_size=4, 
                                     num_beams=5,
                                     pad_token_id=tokenizer.eos_token_id,
                                     # top_p=0.92,
-                                    temperature=temperature,
-                                    early_stopping=False)
+                                    early_stopping=False,
+                                    **other_kwargs)
 
     output_flat = beam_output.squeeze(dim=0)[:-1]
     whole_enchilada = tokenizer.decode(output_flat, skip_special_tokens=skip_special_tokens)
