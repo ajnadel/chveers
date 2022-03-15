@@ -3,7 +3,7 @@ from transformers import GPT2PreTrainedModel, GPT2Tokenizer
 from tqdm import tqdm, trange
 tqdm.pandas()
 
-def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str, df: pd.DataFrame, gpt2=None):
+def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str, df: pd.DataFrame, gpt2=None, **other_kwargs):
     model = model.cuda()
 
     if variant == 'prefix-tune':
@@ -13,12 +13,12 @@ def inference(model: GPT2PreTrainedModel, tokenizer: GPT2Tokenizer, variant: str
     assert 'Body_prefix' in df.columns, "missing key 'Body_prefix' in provided dataframe"
 
     df_with_inference = df.copy()
-    df_with_inference['Body_suffix_inferred'] = df_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, variant, tokenizer, gpt2=gpt2)[2])
+    df_with_inference['Body_suffix_inferred'] = df_with_inference['Body_prefix'].progress_apply(lambda row: generate_suffix(row, model, variant, tokenizer, other_kwargs, gpt2=gpt2)[2])
 
     return df_with_inference
 
 def generate_suffix(prefix, model, variant, tokenizer, no_repeat_ngram_size=4,
-                    skip_special_tokens=False, temperature=0.7, gpt2=None):
+                    skip_special_tokens=False, gpt2=None):
   try:
     prefix_embs = tokenizer(prefix, return_tensors="pt")
     prefix_embs['input_ids'] = prefix_embs['input_ids'].cuda()
@@ -34,8 +34,8 @@ def generate_suffix(prefix, model, variant, tokenizer, no_repeat_ngram_size=4,
                                     num_beams=5,
                                     pad_token_id=tokenizer.eos_token_id,
                                     # top_p=0.92,
-                                    temperature=temperature,
-                                    early_stopping=False)
+                                    early_stopping=False,
+                                    **other_kwargs)
     else:
         beam_output = model.generate(**prefix_embs, 
                                     max_length=n_tokens_in_prefix*2, 

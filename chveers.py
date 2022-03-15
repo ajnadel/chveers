@@ -69,7 +69,7 @@ argp_infer.add_argument('-t', '--temperature',
   dest="temperature",
   help="Input CSV of examples to run inference on",
   type=float,
-  default=None
+  default=0.7
 )
 
 argp_train.add_argument('-o', '--offline',
@@ -193,10 +193,9 @@ if args.function == 'inference':
   print(f"|Inference set| = {len(in_df)}")
   generate_args = { }
   if args.variant == 'prefix-tune':
-    generate_args['gpt2_model'] = gpt2
-  if args.temperature is not None:
-    generate_args['temperature'] = args.temperature
-  out = inference(model, tokenizer, args.variant, in_df, generate_args)
+    out = inference(model, tokenizer, args.variant, in_df, gpt2=gpt2, temperature=args.temperature)
+  else:
+    out = inference(model, tokenizer, args.variant, in_df, temperature=args.temperature)
   print(f"Writing inference results to '{inference_outfile}")
   out.to_csv(args.inference_outfile)
 
