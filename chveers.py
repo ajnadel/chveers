@@ -194,7 +194,6 @@ if args.function == 'inference':
   generate_args = { }
   if args.variant == 'prefix-tune':
     generate_args['gpt2_model'] = gpt2
-    print("setting model here: ", gpt2)
   if args.temperature is not None:
     generate_args['temperature'] = args.temperature
   out = inference(model, tokenizer, args.variant, in_df, generate_args)
@@ -340,7 +339,7 @@ config = {
 if args.wandb_model_checkpoint is not None:
   print("Loading checkpoint training state...", end="")
   checkpoint = torch.load(f"{model_dir}/torch_states.pt")
-  print("done")
+
   optimizer_state = checkpoint['optimizer_state_dict']
   scheduler_state = checkpoint['scheduler_state_dict']
   config['starting_epoch'] = checkpoint['epoch']
