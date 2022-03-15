@@ -1,9 +1,11 @@
-# from transformers import Trainer
 import torch
 from transformers import PreTrainedModel, GPT2PreTrainedModel, GPT2Tokenizer
 from torch import nn
 
-
+# The following class is mostly borrowed from Li and Liang's 2021 reference implementation of prefix tuning.
+# The original code in available here: https://github.com/XiangLi1999/PrefixTuning
+# In particular, `PrefixTuning` class is a heavily simplified version of the similarly-named class
+# from the file gpt2/train_control.py within their repo.
 class PrefixTuning(GPT2PreTrainedModel):
     """Classification Head for  transformer encoders"""
     def __init__(self, config, model_gpt2, #optim_prefix=False, 
