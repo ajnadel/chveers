@@ -189,6 +189,7 @@ else:
 print("Loaded model.")
 
 if args.function == 'inference':
+  print(f"Reading inference examples from '{args.inference_infile}")
   in_df = pd.read_csv(args.inference_infile)
   print(f"|Inference set| = {len(in_df)}")
   generate_args = { }
@@ -196,7 +197,7 @@ if args.function == 'inference':
     out = inference(model, tokenizer, args.variant, in_df, gpt2=gpt2, temperature=args.temperature)
   else:
     out = inference(model, tokenizer, args.variant, in_df, temperature=args.temperature)
-  print(f"Writing inference results to '{inference_outfile}")
+  print(f"Writing inference results to '{args.inference_outfile}")
   out.to_csv(args.inference_outfile)
 
   quit()
